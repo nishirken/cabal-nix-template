@@ -1,6 +1,4 @@
 {
-  description = "graphql";
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
     hls.url = "github:haskell/haskell-language-server";
@@ -13,7 +11,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         haskellPackages = pkgs.haskellPackages;
 
-        packageName = "graphql";
+        packageName = "my-templates";
       in {
         packages.${packageName} =
           haskellPackages.callCabal2nix packageName self rec {

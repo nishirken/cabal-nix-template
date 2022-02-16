@@ -1,11 +1,11 @@
 cabal-version:      2.4
-name:               cabal-nix-template
+name:               my-templates
 version:            0.1.0.0
 author:             Dmitrii Skurikhin
 maintainer:         dmitrii.sk@gmail.com
 extra-source-files: CHANGELOG.md
 
-executable cabal-nix-template
+executable my-templates
     main-is:          Main.hs
     build-depends:
         base ^>=4.14.1.0
