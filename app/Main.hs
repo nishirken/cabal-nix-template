@@ -25,9 +25,7 @@ flakeTemplate packageName = [trimming|{
         packageName = "$packageName";
       in {
         packages.$${packageName} =
-          haskellPackages.callCabal2nix packageName self rec {
-            # Dependency overrides go here
-          };
+          haskellPackages.callCabal2nix packageName self rec {};
 
         defaultPackage = self.packages.$${system}.$${packageName};
 
@@ -54,13 +52,20 @@ mkFlakeFile packageName = Shelly.writefile "flake.nix" $ flakeTemplate packageNa
 
 initFlakes :: Shelly.Sh ()
 initFlakes = do
+  Shelly.writefile ".envrc" "use flake"
   Shelly.bash_ "git add ." []
   Shelly.bash_ "nix flake update" []
+  Shelly.bash_ "direnv allow" []
 
-initCabal :: Maybe String -> Shelly.Sh ()
-initCabal args = do
+initCabal :: Text.Text -> Maybe String -> Shelly.Sh ()
+initCabal projectName args = do
   let
-    defaultArgs = ["-m", "--no-comments", "--overwrite"]
+    defaultArgs =
+      [ "--minimal"
+      , "--quiet"
+      , "--email=dmitrii.sk@gmail.com"
+      , "--author=Dmitrii\\ Skurihin"
+      ]
   Shelly.bash_ "cabal init" $ defaultArgs <> [Text.pack $ fromMaybe "" args]
 
 genHie :: Shelly.Sh ()
@@ -68,24 +73,28 @@ genHie = Shelly.bash_ "gen-hie" []
 
 mkGit :: Shelly.Sh ()
 mkGit = do
-  Shelly.bash_ "git init" []
+  Shelly.bash_ "git init" ["-b master"]
   Shelly.writefile ".gitignore" gitignoreTemplate
+
+test :: Shelly.Sh ()
+test = do
+  Shelly.mkdir "/tmp/test"
+  Shelly.cd "/tmp/test"
 
 main :: IO ()
 main = do
     Cli.defaultMain $ do
+        projectName <- Cli.flagParam (Cli.FlagShort 'p') $ Cli.FlagRequired (Right . Text.pack)
         cabalArgs <- Cli.flagParam (Cli.FlagLong "cabal-args") $ Cli.FlagOptional "" Right
-        Cli.action $ \toParam -> do
+        Cli.command "cabal-nix" $
+          Cli.action $ \toParam -> do
+            let projectName' = fromMaybe "project" $ toParam projectName
             Shelly.shelly $ do
-                Shelly.mkdir "test"
-                Shelly.cd "test"
-                mkFlakeFile "test"
-                initCabal $ toParam cabalArgs
-                genHie
-                mkGit
-                initFlakes
-                Shelly.bash_ "direnv allow" []
-                Shelly.bash_ "git commit" ["-m 'initial'"]
-
+              mkFlakeFile projectName' 
+              mkGit
+              initCabal projectName' $ toParam cabalArgs
+              initFlakes
+              genHie
+              Shelly.bash_ "git commit" ["-a", "-m 'initial'"]
 
 
