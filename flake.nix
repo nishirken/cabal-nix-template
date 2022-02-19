@@ -1,33 +1,37 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
-    hls.url = "github:haskell/haskell-language-server";
+    haskellNix.url = "github:input-output-hk/haskell.nix";
+    nixpkgs.follows = "haskellNix/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, hls }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        haskellPackages = pkgs.haskellPackages;
-
-        packageName = "my-templates";
-      in {
-        packages.${packageName} =
-          haskellPackages.callCabal2nix packageName self rec {
-            # Dependency overrides go here
-          };
-
-        defaultPackage = self.packages.${system}.${packageName};
-
-        devShell = pkgs.mkShell {
-          buildInputs = with haskellPackages; [
-            ghcid
-            cabal-install
-            implicit-hie
-            haskell-language-server
-          ];
-          inputsFrom = builtins.attrValues self.packages.${system};
-        };
-      });
+  outputs = { self, nixpkgs, flake-utils, haskellNix }:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
+    let
+      projectName = "my-templates";
+      overlays = [ haskellNix.overlay
+        (final: prev: {
+          # This overlay adds our project to pkgs
+          ${projectName} =
+            final.haskell-nix.cabalProject' {
+              src = ./.;
+              compiler-nix-name = "ghc8107";
+              index-state = "2022-02-18T13:45:07Z";
+              shell = {
+                tools = {
+                  cabal = "3.6.2.0";
+                  hlint = "latest";
+                  haskell-language-server = "latest";
+                };
+                withHoogle = true;
+              };
+            };
+        })
+      ];
+      pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
+      flake = pkgs.${projectName}.flake {};
+    in flake // {
+      # Built by `nix build .`
+      defaultPackage = flake.packages."${projectName}:exe:${projectName}";
+    });
 }
