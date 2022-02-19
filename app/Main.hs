@@ -37,6 +37,7 @@ flakeTemplate packageName =
                   haskell-language-server = "latest";
                   ormolu = "latest";
                 };
+                buildInputs = [pkgs.haskellPackages.implicit-hie];
                 withHoogle = true;
               };
             };
@@ -86,10 +87,19 @@ mkGit = do
   Shelly.bash_ "git init" ["-b master"]
   Shelly.writefile ".gitignore" gitignoreTemplate
 
-test :: Shelly.Sh ()
-test = do
-  Shelly.mkdir "/tmp/test"
-  Shelly.cd "/tmp/test"
+mkScripts :: Shelly.Sh ()
+mkScripts = do
+  let shebang = "#!/usr/bin/env bash"
+  Shelly.mkdir "scripts"
+  Shelly.writefile (unlines [shebang, "ormolu --mode inplace $(find . -name '*.hs')"]) "scripts/format.sh"
+  Shelly.writefile (unlines [shebang, "hlint ."]) "scripts/lint.sh"
+  Shelly.writefile (unlines [shebang, "./scripts/format.sh", "./scripts/lint.sh"]) "scripts/check.sh"
+  Shelly.bash_ "chmod +x scripts" []
+
+mkDir :: Text.Text -> Shelly.Sh ()
+mkDir dirName = do
+  Shelly.mkdir $ Text.unpack dirName
+  Shelly.cd $ Text.unpack dirName
 
 main :: IO ()
 main = do
@@ -100,9 +110,11 @@ main = do
       Cli.action $ \toParam -> do
         let projectName' = fromMaybe "project" $ toParam projectName
         Shelly.shelly $ do
+          mkDir projectName'
           mkFlakeFile projectName'
           mkGit
-          initCabal projectName' $ toParam cabalArgs
+          mkScripts
           initFlakes
+          initCabal projectName' $ toParam cabalArgs
           genHie
           Shelly.bash_ "git commit" ["-a", "-m 'initial'"]

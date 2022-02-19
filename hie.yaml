@@ -1,4 +1,4 @@
 cradle:
   cabal:
     - path: "app/Main.hs"
-      component: "my-templates:exe:my-templates"
+      component: "templates:exe:templates"

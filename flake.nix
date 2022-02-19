@@ -8,7 +8,7 @@
   outputs = { self, nixpkgs, flake-utils, haskellNix }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
     let
-      projectName = "my-templates";
+      projectName = "templates";
       overlays = [ haskellNix.overlay
         (final: prev: {
           # This overlay adds our project to pkgs
@@ -24,6 +24,7 @@
                   haskell-language-server = "latest";
                   ormolu = "0.1.4.1";
                 };
+                buildInputs = [pkgs.haskellPackages.implicit-hie];
                 withHoogle = true;
               };
             };
