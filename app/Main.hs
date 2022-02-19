@@ -3,14 +3,15 @@
 
 module Main where
 
-import qualified Shelly
 import qualified Console.Options as Cli
 import Data.Maybe (fromMaybe)
-import NeatInterpolation (trimming)
 import qualified Data.Text as Text
+import NeatInterpolation (trimming)
+import qualified Shelly
 
 flakeTemplate :: Text.Text -> Text.Text
-flakeTemplate packageName = [trimming|{
+flakeTemplate packageName =
+  [trimming|{
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
     flake-utils.url = "github:numtide/flake-utils";
@@ -42,10 +43,11 @@ flakeTemplate packageName = [trimming|{
 }|]
 
 gitignoreTemplate :: Text.Text
-gitignoreTemplate = Text.unlines
-  [ "dist-newstyle"
-  , ".direnv"
-  ]
+gitignoreTemplate =
+  Text.unlines
+    [ "dist-newstyle",
+      ".direnv"
+    ]
 
 mkFlakeFile :: Text.Text -> Shelly.Sh ()
 mkFlakeFile packageName = Shelly.writefile "flake.nix" $ flakeTemplate packageName
@@ -59,13 +61,12 @@ initFlakes = do
 
 initCabal :: Text.Text -> Maybe String -> Shelly.Sh ()
 initCabal projectName args = do
-  let
-    defaultArgs =
-      [ "--minimal"
-      , "--quiet"
-      , "--email=dmitrii.sk@gmail.com"
-      , "--author=Dmitrii\\ Skurihin"
-      ]
+  let defaultArgs =
+        [ "--minimal",
+          "--quiet",
+          "--email=dmitrii.sk@gmail.com",
+          "--author=Dmitrii\\ Skurihin"
+        ]
   Shelly.bash_ "cabal init" $ defaultArgs <> [Text.pack $ fromMaybe "" args]
 
 genHie :: Shelly.Sh ()
@@ -83,18 +84,16 @@ test = do
 
 main :: IO ()
 main = do
-    Cli.defaultMain $ do
-        projectName <- Cli.flagParam (Cli.FlagShort 'p') $ Cli.FlagRequired (Right . Text.pack)
-        cabalArgs <- Cli.flagParam (Cli.FlagLong "cabal-args") $ Cli.FlagOptional "" Right
-        Cli.command "cabal-nix" $
-          Cli.action $ \toParam -> do
-            let projectName' = fromMaybe "project" $ toParam projectName
-            Shelly.shelly $ do
-              mkFlakeFile projectName' 
-              mkGit
-              initCabal projectName' $ toParam cabalArgs
-              initFlakes
-              genHie
-              Shelly.bash_ "git commit" ["-a", "-m 'initial'"]
-
-
+  Cli.defaultMain $ do
+    projectName <- Cli.flagParam (Cli.FlagShort 'p') $ Cli.FlagRequired (Right . Text.pack)
+    cabalArgs <- Cli.flagParam (Cli.FlagLong "cabal-args") $ Cli.FlagOptional "" Right
+    Cli.command "cabal-nix" $
+      Cli.action $ \toParam -> do
+        let projectName' = fromMaybe "project" $ toParam projectName
+        Shelly.shelly $ do
+          mkFlakeFile projectName'
+          mkGit
+          initCabal projectName' $ toParam cabalArgs
+          initFlakes
+          genHie
+          Shelly.bash_ "git commit" ["-a", "-m 'initial'"]

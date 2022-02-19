@@ -22,6 +22,7 @@
                   cabal = "3.6.2.0";
                   hlint = "latest";
                   haskell-language-server = "latest";
+                  ormolu = "0.1.4.1";
                 };
                 withHoogle = true;
               };
