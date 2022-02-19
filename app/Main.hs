@@ -12,7 +12,6 @@ import qualified Shelly
 flakeTemplate :: Text.Text -> Text.Text
 flakeTemplate packageName =
   [trimming|{
-  {
   inputs = {
     haskellNix.url = "github:input-output-hk/haskell.nix";
     nixpkgs.follows = "haskellNix/nixpkgs-unstable";
@@ -22,11 +21,11 @@ flakeTemplate packageName =
   outputs = { self, nixpkgs, flake-utils, haskellNix }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
     let
-      packageName = $packageName;
+      packageName = "$packageName";
       overlays = [ haskellNix.overlay
         (final: prev: {
           # This overlay adds our project to pkgs
-          $${projectName} =
+          $${packageName} =
             final.haskell-nix.cabalProject' {
               src = ./.;
               compiler-nix-name = "ghc8107";
@@ -44,12 +43,11 @@ flakeTemplate packageName =
         })
       ];
       pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
-      flake = pkgs.$${projectName}.flake {};
+      flake = pkgs.$${packageName}.flake {};
     in flake // {
       # Built by `nix build .`
-      defaultPackage = flake.packages."$${projectName}:exe:$${projectName}";
+      defaultPackage = flake.packages."$${packageName}:exe:$${packageName}";
     });
-}
 }|]
 
 gitignoreTemplate :: Text.Text
@@ -69,18 +67,23 @@ initFlakes = do
   Shelly.bash_ "nix flake update" []
   Shelly.bash_ "direnv allow" []
 
+cabalCmd :: Text.Text -> Text.Text
+cabalCmd args = [trimming|nix-shell -p pkgs.haskellPackages.cabal-install pkgs.haskellPackages.ghc --command "cabal init $args"|]
+
 initCabal :: Text.Text -> Maybe String -> Shelly.Sh ()
-initCabal projectName args = do
+initCabal projectName args =
   let defaultArgs =
-        [ "--minimal",
-          "--quiet",
-          "--email=dmitrii.sk@gmail.com",
-          "--author=Dmitrii\\ Skurihin"
+        [ "--minimal"
+        , "--quiet"
+        , "--package-name=" <> projectName
+        , "--email=dmitrii.sk@gmail.com"
+        , "--author=Dmitrii\\ Skurihin"
         ]
-  Shelly.bash_ "cabal init" $ defaultArgs <> [Text.pack $ fromMaybe "" args]
+      fullArgs = Text.unwords $ defaultArgs <> [Text.pack $ fromMaybe "" args]
+   in Shelly.bash_ (Text.unpack $ cabalCmd fullArgs) []
 
 genHie :: Shelly.Sh ()
-genHie = Shelly.bash_ "gen-hie" []
+genHie = Shelly.bash_ "nix-shell -p pkgs.haskellPackages.implicit-hie --command gen-hie" []
 
 mkGit :: Shelly.Sh ()
 mkGit = do
@@ -91,9 +94,12 @@ mkScripts :: Shelly.Sh ()
 mkScripts = do
   let shebang = "#!/usr/bin/env bash"
   Shelly.mkdir "scripts"
-  Shelly.writefile (unlines [shebang, "ormolu --mode inplace $(find . -name '*.hs')"]) "scripts/format.sh"
-  Shelly.writefile (unlines [shebang, "hlint ."]) "scripts/lint.sh"
-  Shelly.writefile (unlines [shebang, "./scripts/format.sh", "./scripts/lint.sh"]) "scripts/check.sh"
+  Shelly.touchfile "scripts/format.sh"
+  Shelly.touchfile "scripts/lint.sh"
+  Shelly.touchfile "scripts/check.sh"
+  Shelly.writefile "scripts/format.sh" $ Text.unlines [shebang, "ormolu --mode inplace $(find . -name '*.hs')"]
+  Shelly.writefile "scripts/lint.sh" $ Text.unlines [shebang, "hlint ."]
+  Shelly.writefile "scripts/check.sh" $ Text.unlines [shebang, "./scripts/format.sh", "./scripts/lint.sh"]
   Shelly.bash_ "chmod +x scripts" []
 
 mkDir :: Text.Text -> Shelly.Sh ()
@@ -111,10 +117,10 @@ main = do
         let projectName' = fromMaybe "project" $ toParam projectName
         Shelly.shelly $ do
           mkDir projectName'
+          initCabal projectName' $ toParam cabalArgs
           mkFlakeFile projectName'
           mkGit
           mkScripts
           initFlakes
-          initCabal projectName' $ toParam cabalArgs
           genHie
           Shelly.bash_ "git commit" ["-a", "-m 'initial'"]
