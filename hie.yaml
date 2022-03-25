@@ -2,11 +2,12 @@ cradle:
   cabal:
     - path: "app/Main.hs"
       component: "templates:exe:templates"
-cradle:
-  cabal:
-    - path: "app/Main.hs"
+
+    - path: "app/Common.hs"
       component: "templates:exe:templates"
-cradle:
-  cabal:
-    - path: "app/Main.hs"
+
+    - path: "app/CabalNix.hs"
+      component: "templates:exe:templates"
+
+    - path: "app/NpmNix.hs"
       component: "templates:exe:templates"

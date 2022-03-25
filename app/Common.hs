@@ -6,7 +6,9 @@ import qualified Data.Text as Text
 import qualified Shelly
 
 initCommit :: Shelly.Sh ()
-initCommit = Shelly.bash_ "git commit" ["-a", "-m 'initial'"]
+initCommit = do
+  Shelly.bash_ "git add ." []
+  Shelly.bash_ "git commit" ["-m 'initial'"]
 
 mkDir :: Text.Text -> Shelly.Sh ()
 mkDir dirName = do
@@ -19,7 +21,7 @@ mkGit gitignoreTemplate = do
   Shelly.writefile ".gitignore" gitignoreTemplate
 
 mkFlakeFile :: Text.Text -> Shelly.Sh ()
-mkFlakeFile template = Shelly.writefile "flake.nix" template
+mkFlakeFile = Shelly.writefile "flake.nix"
 
 initFlakes :: Shelly.Sh ()
 initFlakes = do

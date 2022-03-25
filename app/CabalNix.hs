@@ -74,7 +74,10 @@ initCabal projectName args =
    in Shelly.bash_ (Text.unpack $ cabalCmd fullArgs) []
 
 genHie :: Shelly.Sh ()
-genHie = Shelly.bash_ "nix-shell -p pkgs.haskellPackages.implicit-hie --command gen-hie" []
+genHie = Shelly.bash_ "nix-shell -p pkgs.haskellPackages.implicit-hie --command gen-hie > hie.yaml" []
+
+format :: Shelly.Sh ()
+format = Shelly.bash_ "./scripts/format.sh" []
 
 mkScripts :: Shelly.Sh ()
 mkScripts = do

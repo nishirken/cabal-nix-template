@@ -26,6 +26,7 @@ main = do
         CabalNix.mkScripts
         initFlakes
         CabalNix.genHie
+        CabalNix.format
         initCommit
 
     Cli.command "npm-nix" $ Cli.action $ \toParam -> do
