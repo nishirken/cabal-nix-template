@@ -19,7 +19,7 @@ flakeTemplate packageName =
       let
         pkgs = nixpkgs.legacyPackages.$${system};
 
-        packageName = $packageName;
+        packageName = "$packageName";
       in {
         defaultPackage = self.packages.$${system}.$${packageName};
 
@@ -34,7 +34,6 @@ flakeTemplate packageName =
 gitignoreTemplate :: Text.Text
 gitignoreTemplate =
   Text.unlines
-    [ "dist-newstyle",
-      ".direnv"
+    [ ".direnv"
     ]
 
