@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module CabalNix where
 
@@ -8,7 +9,7 @@ import qualified Data.Text as Text
 import qualified Console.Options as Cli
 import Data.Maybe (fromMaybe)
 import NeatInterpolation (trimming)
-import Common (initCommit, mkGit, mkDir)
+import Common
 
 flakeTemplate :: Text.Text -> Text.Text
 flakeTemplate packageName =
@@ -61,7 +62,7 @@ gitignoreTemplate =
 cabalCmd :: Text.Text -> Text.Text
 cabalCmd args = [trimming|nix-shell -p pkgs.haskellPackages.cabal-install pkgs.haskellPackages.ghc --command "cabal init $args"|]
 
-initCabal :: Text.Text -> Maybe String -> Shelly.Sh ()
+initCabal :: Text.Text -> Text.Text -> Shelly.Sh ()
 initCabal projectName args =
   let defaultArgs =
         [ "--minimal"
@@ -70,11 +71,11 @@ initCabal projectName args =
         , "--email=dmitrii.sk@gmail.com"
         , "--author=Dmitrii\\ Skurihin"
         ]
-      fullArgs = Text.unwords $ defaultArgs <> [Text.pack $ fromMaybe "" args]
+      fullArgs = Text.unwords $ defaultArgs <> [args]
    in Shelly.bash_ (Text.unpack $ cabalCmd fullArgs) []
 
 genHie :: Shelly.Sh ()
-genHie = Shelly.bash_ "nix-shell -p pkgs.haskellPackages.implicit-hie --command gen-hie > hie.yaml" []
+genHie = Shelly.bash_ "nix-shell -p pkgs.haskellPackages.implicit-hie --command \"gen-hie > hie.yaml\"" []
 
 format :: Shelly.Sh ()
 format = Shelly.bash_ "./scripts/format.sh" []
@@ -90,4 +91,25 @@ mkScripts = do
   Shelly.writefile "scripts/lint.sh" $ Text.unlines [shebang, "hlint ."]
   Shelly.writefile "scripts/check.sh" $ Text.unlines [shebang, "./scripts/format.sh", "./scripts/lint.sh"]
   Shelly.bash_ "chmod +x scripts" []
+
+data CabalInitParams = CabalInitParams
+  { _projectName :: Maybe Text.Text
+  , _cabalArgs :: Maybe Text.Text
+  } deriving (Eq, Show)
+
+init :: CabalInitParams -> IO ()
+init CabalInitParams{..} = do
+  Shelly.shelly $ do
+    let
+      projectName = fromMaybe "default-cabal-project" _projectName
+      cabalArgs = fromMaybe "" _cabalArgs
+    mkDir projectName
+    initCabal projectName cabalArgs
+    mkFlakeFile $ flakeTemplate projectName
+    mkGit gitignoreTemplate
+    mkScripts
+    initFlakes
+    genHie
+    format
+    initCommit
 
