@@ -16,7 +16,6 @@
             final.haskell-nix.cabalProject' {
               src = ./.;
               compiler-nix-name = "ghc8107";
-              index-state = "2022-02-18T13:45:07Z";
               shell = {
                 tools = {
                   cabal = "3.6.2.0";
@@ -32,8 +31,13 @@
       ];
       pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
       flake = pkgs.${projectName}.flake {};
+      defaultPackage = flake.packages."${projectName}:exe:${projectName}".overrideAttrs(old: {
+        installPhase = old.installPhase + ''
+          echo "Hello"
+        '';
+      });
     in flake // {
       # Built by `nix build .`
-      defaultPackage = flake.packages."${projectName}:exe:${projectName}";
+      defaultPackage = defaultPackage;
     });
 }

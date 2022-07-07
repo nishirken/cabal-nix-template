@@ -1,0 +1,17 @@
+{
+  "extends": [
+    "plugin:prettier/recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint",
+    "prettier"
+  ],
+  "rules": {
+    "consistent-return": 2,
+    "indent"           : [1, 2],
+    "@typescript-eslint/no-explicit-any": "off",
+    "prettier/prettier": "error"
+  }
+}

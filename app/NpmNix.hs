@@ -8,6 +8,8 @@ import qualified Shelly
 import NeatInterpolation (trimming)
 import Common
 import Data.Maybe (fromMaybe)
+import System.FilePath ((</>))
+import qualified Data.Text.IO as TIO
 
 flakeTemplate :: Text.Text -> Text.Text
 flakeTemplate packageName =
@@ -38,8 +40,8 @@ gitignoreTemplate :: Text.Text
 gitignoreTemplate =
   Text.unlines
     [ ".direnv"
+    , ".idea"
     ]
-
 
 npmInit :: Shelly.Sh ()
 npmInit = do
@@ -49,8 +51,12 @@ npmInit = do
 newtype NpmInitArgs = NpmInitArgs (Maybe Text.Text) deriving (Eq, Show)
 
 init :: NpmInitArgs -> IO ()
-init (NpmInitArgs _projectName)= do
+init (NpmInitArgs _projectName) = do
   let projectName = fromMaybe "default-npm-project" _projectName
+  initialPackageJsonContent <- TIO.readFile "./templates/node/package.json"
+  let packageJsonContent =
+        (Text.replace "$packageName" projectName . Text.replace "$author" "Dmitriy Skurikhin") initialPackageJsonContent
+  print packageJsonContent
   Shelly.shelly $ do
     mkDir projectName
     mkFlakeFile $ flakeTemplate projectName
