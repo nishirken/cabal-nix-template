@@ -6,13 +6,13 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, haskellNix }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
     let
-      projectName = "templates";
+      packageName = "$packageName";
       overlays = [ haskellNix.overlay
         (final: prev: {
           # This overlay adds our project to pkgs
-          ${projectName} =
+          ${packageName} =
             final.haskell-nix.cabalProject' {
               src = ./.;
               compiler-nix-name = "ghc8107";
@@ -30,14 +30,9 @@
         })
       ];
       pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
-      flake = pkgs.${projectName}.flake {};
-      defaultPackage = flake.packages."${projectName}:exe:${projectName}".overrideAttrs(old: {
-        installPhase = old.installPhase + ''
-          cp -r ./app/templates $out/templates
-        '';
-      });
+      flake = pkgs.${packageName}.flake {};
     in flake // {
       # Built by `nix build .`
-      defaultPackage = defaultPackage;
+      defaultPackage = flake.packages."${packageName}:exe:${packageName}";
     });
 }

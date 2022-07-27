@@ -23,4 +23,6 @@ executable templates
         aeson >=2.0.3.0,
         bytestring >=0.11.3.0,
         filepath >=1.4.2.2,
-        text-replace
+        text-replace,
+        directory,
+        basement
