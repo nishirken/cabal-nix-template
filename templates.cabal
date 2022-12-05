@@ -1,4 +1,4 @@
-cabal-version:      2.4
+cabal-version:      3.6
 name:               templates
 version:            0.1.0.0
 author:             Dmitrii Skurikhin
@@ -8,7 +8,7 @@ extra-source-files: CHANGELOG.md
 executable templates
     main-is:          Main.hs
     build-depends:
-        base ^>=4.14.1.0
+        base
         , cli ^>=0.2.0
         , shelly ^>=1.10.0
         , neat-interpolation >=0.5.1.3

@@ -20,14 +20,13 @@
           ${projectName} =
             final.haskell-nix.cabalProject' {
               src = ./.;
-              compiler-nix-name = "ghc8107";
-              index-state = "2022-02-18T13:45:07Z";
+              compiler-nix-name = "ghc925";
               shell = {
                 tools = {
-                  cabal = "3.6.2.0";
+                  cabal = "3.8.1.0";
                   hlint = "latest";
                   haskell-language-server = "latest";
-                  ormolu = "0.1.4.1";
+                  ormolu = "0.5.0.1";
                 };
                 buildInputs = [pkgs.haskellPackages.implicit-hie];
                 withHoogle = true;
