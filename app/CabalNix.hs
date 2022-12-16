@@ -35,15 +35,14 @@ format :: Shelly.Sh ()
 format = Shelly.bash_ "nix-shell -p pkgs.haskellPackages.ormolu --command \"./scripts/format.sh\"" []
 
 data CabalInitParams = CabalInitParams
-  { _projectName :: Maybe Text.Text,
+  { _projectName :: Text.Text,
     _cabalArgs :: Maybe Text.Text
   }
   deriving (Eq, Show)
 
 init :: CabalInitParams -> IO ()
 init CabalInitParams {..} = do
-  let projectName = fromMaybe "default-cabal-project" _projectName
-      cabalArgs = fromMaybe "" _cabalArgs
+  let cabalArgs = fromMaybe "" _cabalArgs
 
   terminal <- Display.displayInit
   templateDir <- getTemplateDir "cabal"
@@ -51,7 +50,7 @@ init CabalInitParams {..} = do
       copyTemplate_ fileName replaceList =
         copyTemplate
           (templateDir </> fileName)
-          (Text.unpack projectName </> fileName)
+          (Text.unpack _projectName </> fileName)
           replaceList
       step_ = step terminal
 
@@ -61,27 +60,27 @@ init CabalInitParams {..} = do
       -- create the project dir
       -- initialize .git inside the project dir
       -- current dir=projectName
-      mkDir projectName
+      mkDir _projectName
       mkGit
 
   step_ "Initializing cabal..."
   Shelly.shelly $
     Shelly.silently $ do
-      Shelly.cd $ Text.unpack projectName
-      initCabal projectName cabalArgs
+      Shelly.cd $ Text.unpack _projectName
+      initCabal _projectName cabalArgs
 
   step_ "Copying templates..."
   Shelly.shelly $
     Shelly.silently $ do
-      Shelly.cp_r (templateDir </> "scripts") (Text.unpack projectName </> "scripts")
-      Shelly.bash_ ("chmod -R +x " <> (Text.unpack projectName </> "scripts")) []
-  copyTemplate_ "flake.nix" [("$packageName", projectName)]
+      Shelly.cp_r (templateDir </> "scripts") (Text.unpack _projectName </> "scripts")
+      Shelly.bash_ ("chmod -R +x " <> (Text.unpack _projectName </> "scripts")) []
+  copyTemplate_ "flake.nix" [("$packageName", _projectName)]
   copyTemplate_ ".gitignore" []
 
   step_ "Initializing flakes..."
   Shelly.shelly $
     Shelly.silently $ do
-      Shelly.cd $ Text.unpack projectName
+      Shelly.cd $ Text.unpack _projectName
       gitAdd
       initFlakes
       genHie

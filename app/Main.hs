@@ -7,6 +7,7 @@ import qualified Console.Options as Cli
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as Text
 import qualified NpmNix
+import Debug.Trace (trace)
 
 main :: IO ()
 main = do
@@ -18,9 +19,16 @@ main = do
       Cli.action $ \toParam -> do
         let projectName' = toParam projectName
             cabalArgs' = toParam cabalArgs
-        CabalNix.init $ CabalNix.CabalInitParams projectName' cabalArgs'
+
+        case projectName' of
+          (Just p) -> CabalNix.init $ CabalNix.CabalInitParams p cabalArgs'
+          Nothing -> error "The project name argument is required"
 
     Cli.command "npm-nix" $
       Cli.action $ \toParam -> do
         let projectName' = toParam projectName
-        NpmNix.init $ NpmNix.NpmInitArgs projectName'
+
+        case projectName' of
+          (Just p) -> NpmNix.init $ NpmNix.NpmInitArgs p
+          Nothing -> error "The project name argument is required"
+        

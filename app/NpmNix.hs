@@ -14,18 +14,16 @@ import System.FilePath (takeDirectory, (</>))
 nodeTemplateDir :: FilePath -> FilePath
 nodeTemplateDir executablePath = takeDirectory executablePath </> "../templates/node"
 
-newtype NpmInitArgs = NpmInitArgs (Maybe Text.Text) deriving (Eq, Show)
+newtype NpmInitArgs = NpmInitArgs Text.Text deriving (Eq, Show)
 
 init :: NpmInitArgs -> IO ()
 init (NpmInitArgs _projectName) = do
-  let projectName = fromMaybe "default-npm-project" _projectName
-
   templateDir <- getTemplateDir "node"
   let copyNodeTemplate :: FilePath -> [(Text.Text, Text.Text)] -> IO ()
       copyNodeTemplate fileName replaceList =
         copyTemplate
           (templateDir </> fileName)
-          (Text.unpack projectName </> fileName)
+          (Text.unpack _projectName </> fileName)
           replaceList
   terminal <- Display.displayInit
   let step_ = step terminal
@@ -36,17 +34,17 @@ init (NpmInitArgs _projectName) = do
       -- create the project dir
       -- initialize .git inside the project dir
       -- current dir=projectName
-      mkDir projectName
+      mkDir _projectName
       mkGit
 
   -- currentDir=cwd
   step_ "Copying templates..."
   copyNodeTemplate
     "package.json"
-    [ ("$packageName", projectName),
+    [ ("$packageName", _projectName),
       ("$author", "Dmitriy Skurikhin")
     ]
-  copyNodeTemplate "flake.nix" [("$packageName", projectName)]
+  copyNodeTemplate "flake.nix" [("$packageName", _projectName)]
   copyNodeTemplate ".gitignore" []
   copyNodeTemplate "tsconfig.json" []
   copyNodeTemplate "jest.config.js" []
@@ -57,7 +55,7 @@ init (NpmInitArgs _projectName) = do
   step_ "Initializing nix..."
   Shelly.shelly $
     Shelly.silently $ do
-      Shelly.cd $ Text.unpack projectName
+      Shelly.cd $ Text.unpack _projectName
       gitAdd
       initFlakes
       initCommit
